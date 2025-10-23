@@ -20,6 +20,9 @@
   <body class="bg-blue-50">
     <div id="root"></div>
     <script type="module">
+if (typeof process === 'undefined') {
+  window.process = { env: {} };
+}
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { GoogleGenAI, Type, Modality } from "@google/genai";
@@ -486,7 +489,7 @@ function PassageList({ studentInfo, onSelectPassage, onBackToWelcome }) {
 
 
 // --- START OF components/ReadingView.tsx ---
-function ReadingView({ passage, onBack, onFinishRecording }) {
+function ReadingView({ passage, onBack, onFinishRecording, error: appError }) {
   const { isRecording, startRecording, stopRecording, error: recorderError } = useAudioRecorder();
   const { isPlaying: isSamplePlaying, playAudio: playSampleAudio, stopAudio: stopSampleAudio } = useAudioPlayer();
   const [isGeneratingSpeech, setIsGeneratingSpeech] = useState(false);
@@ -525,6 +528,7 @@ function ReadingView({ passage, onBack, onFinishRecording }) {
   };
   
   const isBusy = isGeneratingSpeech || isSamplePlaying;
+  const combinedError = appError || recorderError || ttsError;
 
   return (
     React.createElement('div', { className: "flex flex-col items-center justify-center min-h-screen bg-blue-100 p-4" },
@@ -539,7 +543,7 @@ function ReadingView({ passage, onBack, onFinishRecording }) {
           passage.content
         ),
         
-        (recorderError || ttsError) && React.createElement('p', { className: "text-red-500 text-center mb-4" }, recorderError || ttsError),
+        combinedError && React.createElement('p', { className: "text-red-500 text-center mb-4" }, combinedError),
         
         React.createElement('div', { className: "flex flex-col items-center" },
           !isRecording ? (
@@ -882,7 +886,7 @@ function App() {
         return React.createElement(WelcomeScreen, { onStart: handleStart });
       case 'reading':
         if (selectedPassage) {
-          return React.createElement(ReadingView, { passage: selectedPassage, onBack: handleBackToPassageList, onFinishRecording: handleFinishRecording });
+          return React.createElement(ReadingView, { passage: selectedPassage, onBack: handleBackToPassageList, onFinishRecording: handleFinishRecording, error: error });
         }
         return React.createElement(WelcomeScreen, { onStart: handleStart }); // Fallback
       case 'evaluation':
